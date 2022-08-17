@@ -1,6 +1,6 @@
 ﻿using WebSocketSharp;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 public class Server : MonoBehaviour
 {
@@ -19,33 +19,36 @@ public class Server : MonoBehaviour
     }
 
     public string Adress;
-    public Text Text;
-    public InputField FPout, FPto, Message;
+    public TMP_Text Fingerprint;
+    public TMP_InputField Message, RecipientID;
+    public Message MessageTemplate;
 
     WebSocket ws;
-    bool authFlag = false;
 
     public void Start() {
         ws = new WebSocket(Adress);
+        ws.Connect(); 
+        var auth = new AuthMessage();
+        auth.Fingerprint = SystemInfo.deviceUniqueIdentifier;
+        ws.Send(JsonUtility.ToJson(auth));
         ws.OnMessage += Ws_OnMessage;
+        Fingerprint.text = SystemInfo.deviceUniqueIdentifier;
     }
 
     private void Ws_OnMessage(object sender, MessageEventArgs e) {
-        Text.text = JsonUtility.FromJson<DefaultMessage>(e.Data).Message;
+        var message = Instantiate(MessageTemplate);
+        message.transform.SetParent(MessageTemplate.transform.parent);
+        message.gameObject.SetActive(true);
+        var data = JsonUtility.FromJson<DefaultMessage>(e.Data);
+        message.Setup(data.Message, data.Sender);
     }
 
     [ContextMenu("test")]
     public void SendMessage() {
-        if (!authFlag) {
-            ws.Connect(); var auth = new AuthMessage();
-            auth.Fingerprint = FPout.text;
-            ws.Send(JsonUtility.ToJson(auth));
-            authFlag = true;
-        }
         var message = new DefaultMessage();
         message.Message = Message.text;
-        message.Recipient = FPto.text;
-        message.Sender = FPout.text;
+        message.Recipient = RecipientID.text;
+        message.Sender = SystemInfo.deviceUniqueIdentifier;
 
         ws.Send(JsonUtility.ToJson(message));
     }
