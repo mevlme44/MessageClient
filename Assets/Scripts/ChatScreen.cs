@@ -16,6 +16,6 @@ public class ChatScreen : MonoBehaviour
         Name.text = name;
         AvatarImage.color = color;
 
-        SendButton.onClick.AddListener(() => )
+        //SendButton.onClick.AddListener(() => )
     }
 }

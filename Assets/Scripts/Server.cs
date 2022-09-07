@@ -1,6 +1,8 @@
 ﻿using WebSocketSharp;
 using UnityEngine;
 using TMPro;
+using UnityEngine.Networking;
+using System.Collections;
 
 public class Server : MonoSingleton<Server>
 {
@@ -34,15 +36,36 @@ public class Server : MonoSingleton<Server>
 
     [ContextMenu("test")]
     public void Test() {
-        var message = MessageTemplate.InstantiateTemplate();
-        message.Setup("test");
+        StartCoroutine(GetMessages());
     }
+
+    IEnumerator GetMessages() {
+        var req = UnityWebRequest.Get("http://89.208.229.139:5051/getMyMessages/");
+        req.SetRequestHeader("Authorization", "");
+        yield return req.SendWebRequest();
+
+        Debug.LogError(req.downloadHandler.text);
+    }
+
     private void Ws_OnMessage(object sender, MessageEventArgs e) {
-        var message = Instantiate(MessageTemplate);
-        message.transform.SetParent(MessageTemplate.transform.parent);
-        message.gameObject.SetActive(true);
         var data = JsonUtility.FromJson<DefaultMessage>(e.Data);
-        message.Setup(data.Message);
+        if (data.Header == "message") {
+            var message = Instantiate(MessageTemplate);
+            message.transform.SetParent(MessageTemplate.transform.parent);
+            message.gameObject.SetActive(true);
+            message.Setup(data.Message);
+        }
+        else if (data.Header == "error") {
+            Debug.LogError(data.Message);
+        }
+        else {
+
+        }
+    }
+
+    [ContextMenu("Send")]
+    public void Send() {
+        SendMessage("test", "test");
     }
 
     public void SendMessage(string text, string recipient) {
